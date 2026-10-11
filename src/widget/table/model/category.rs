@@ -7,8 +7,13 @@ use crate::widget::Icon;
 pub trait ItemCategory:
     Default + std::fmt::Display + Clone + Copy + PartialEq + Eq + std::hash::Hash
 {
-    /// Function that gets the width of the data
+    /// Get the width of the column
     fn width(&self) -> iced::Length;
+
+    /// Get the horizontal alignment of the column
+    fn alignment(&self) -> iced::alignment::Horizontal {
+        iced::alignment::Horizontal::Left
+    }
 }
 
 pub trait ItemInterface<Category: ItemCategory> {
