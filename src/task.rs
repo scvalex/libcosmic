@@ -7,6 +7,8 @@ use futures::stream::{Stream, StreamExt};
 use std::future::Future;
 
 /// Yields a task which contains a batch of tasks.
+///
+/// Consider using [`Task::batch`](iced::Task::batch) unless you need the more flexible type.
 pub fn batch<X: Send + 'static + Into<Y>, Y: Send + 'static>(
     tasks: impl IntoIterator<Item = iced::Task<X>>,
 ) -> iced::Task<Y> {
