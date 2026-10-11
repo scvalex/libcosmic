@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use chrono::Datelike;
 use cosmic::app::{Core, Settings, Task};
-use cosmic::iced::Size;
+use cosmic::iced::{alignment::Horizontal, Size};
 use cosmic::prelude::*;
 use cosmic::widget::{self, nav_bar, table};
 use cosmic::{executor, iced};
@@ -36,6 +36,14 @@ impl table::ItemCategory for Category {
             Self::Name => iced::Length::Fill,
             Self::Date => iced::Length::Fixed(200.0),
             Self::Size => iced::Length::Fixed(150.0),
+        }
+    }
+
+    fn alignment(&self) -> Horizontal {
+        match self {
+            Category::Name => Horizontal::Left,
+            Category::Date => Horizontal::Left,
+            Category::Size => Horizontal::Right,
         }
     }
 }

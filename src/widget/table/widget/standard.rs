@@ -157,6 +157,7 @@ where
                             .align_y(Alignment::Center)
                             .apply(container)
                             .width(category.width())
+                            .align_x(category.alignment())
                             .align_y(Alignment::Center)
                             .apply(Element::from)
                     })
