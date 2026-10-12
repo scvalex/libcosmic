@@ -1,4 +1,5 @@
 use derive_setters::Setters;
+use iced::alignment::Horizontal;
 
 use crate::widget::table::model::category::{ItemCategory, ItemInterface};
 use crate::widget::table::model::selection::Selectable;
@@ -113,6 +114,7 @@ where
                             .right(val.item_padding.right),
                     )
                     .width(category.width())
+                    .align_x(Horizontal::Center)
                     .apply(widget::mouse_area)
                     .apply(|mouse_area| {
                         if let Some(ref on_category_select) = val.on_category_mb_left {
