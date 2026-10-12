@@ -16,6 +16,14 @@ pub trait ItemCategory:
     fn alignment(&self) -> iced::alignment::Horizontal {
         iced::alignment::Horizontal::Left
     }
+
+    /// Get the font of the column.
+    ///
+    /// For example, set the first column to [`cosmic::font::bold`] to indicate
+    /// a secondary header.
+    fn font(&self) -> iced::Font {
+        crate::font::default()
+    }
 }
 
 pub trait ItemInterface<Category: ItemCategory> {

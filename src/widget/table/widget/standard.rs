@@ -155,7 +155,9 @@ where
                                 item.get_icon(*category)
                                     .map(|icon| icon.size(val.icon_size)),
                             )
-                            .push(widget::text::body(item.get_text(*category)))
+                            .push(
+                                widget::text::body(item.get_text(*category)).font(category.font()),
+                            )
                             .align_y(Alignment::Center)
                             .apply(container)
                             .width(category.width())
