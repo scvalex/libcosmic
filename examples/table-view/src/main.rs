@@ -47,6 +47,14 @@ impl table::ItemCategory for Category {
             Category::Size => Horizontal::Right,
         }
     }
+
+    // Optional method
+    fn font(&self) -> iced::Font {
+        match self {
+            Category::Size => cosmic::font::mono(),
+            Category::Name | Category::Date => cosmic::font::default(),
+        }
+    }
 }
 
 struct Item {
