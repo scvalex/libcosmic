@@ -10,7 +10,9 @@ pub trait ItemCategory:
     /// Get the width of the column
     fn width(&self) -> iced::Length;
 
-    /// Get the horizontal alignment of the column
+    /// Get the horizontal alignment of the column.
+    ///
+    /// For example, numerical columns are traditionally alligned to the right.
     fn alignment(&self) -> iced::alignment::Horizontal {
         iced::alignment::Horizontal::Left
     }

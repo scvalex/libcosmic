@@ -39,6 +39,7 @@ impl table::ItemCategory for Category {
         }
     }
 
+    // Optional method
     fn alignment(&self) -> Horizontal {
         match self {
             Category::Name => Horizontal::Left,
