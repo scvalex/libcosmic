@@ -35,6 +35,7 @@ where
     pub(super) icon_size: u16,
 
     pub(super) alternate_row_colors: bool,
+    pub(super) scroll_contents: bool,
 
     #[setters(into)]
     pub(super) divider_padding: Padding,
@@ -125,128 +126,147 @@ where
             })
             .apply(widget::row::with_children)
             .apply(Element::from);
+        // Draw a line under the header
+        let header_and_divider = widget::column![
+            header_row,
+            divider::horizontal::default()
+                .apply(container)
+                .padding(val.divider_padding)
+                .apply(Element::from),
+        ];
         // Build the items
-        let items_full = if val.model.items.is_empty() {
-            vec![
-                divider::horizontal::default()
+        let items_full = val
+            .model
+            .iter()
+            .enumerate()
+            .flat_map(move |(idx, entity)| {
+                let item = val.model.item(entity).unwrap();
+                let categories = &val.model.categories;
+                let selected = val.model.is_active(entity);
+                let item_context = (val.item_context_builder)(item);
+                let row = categories
+                    .iter()
+                    .map(|category| {
+                        widget::row::with_capacity(2)
+                            .spacing(val.icon_spacing)
+                            .push_maybe(
+                                item.get_icon(*category)
+                                    .map(|icon| icon.size(val.icon_size)),
+                            )
+                            .push(widget::text::body(item.get_text(*category)))
+                            .align_y(Alignment::Center)
+                            .apply(container)
+                            .width(category.width())
+                            .align_y(Alignment::Center)
+                            .apply(Element::from)
+                    })
+                    .apply(widget::row::with_children)
                     .apply(container)
-                    .padding(val.divider_padding)
-                    .apply(Element::from),
-            ]
-        } else {
-            val.model
-                .iter()
-                .enumerate()
-                .flat_map(move |(idx, entity)| {
-                    let item = val.model.item(entity).unwrap();
-                    let categories = &val.model.categories;
-                    let selected = val.model.is_active(entity);
-                    let item_context = (val.item_context_builder)(item);
-
-                    [
+                    .padding(val.item_padding)
+                    .class(theme::Container::custom(move |theme| {
+                        widget::container::Style {
+                            icon_color: if selected {
+                                Some(theme.cosmic().on_accent_color().into())
+                            } else {
+                                None
+                            },
+                            text_color: if selected {
+                                Some(theme.cosmic().on_accent_color().into())
+                            } else {
+                                None
+                            },
+                            background: if selected {
+                                Some(iced::Background::Color(
+                                    theme.cosmic().accent_color().into(),
+                                ))
+                            } else {
+                                if val.alternate_row_colors && idx % 2 == 0 {
+                                    Some(iced::Background::Color(
+                                        theme.cosmic().shade_color().into(),
+                                    ))
+                                } else {
+                                    None
+                                }
+                            },
+                            border: Border {
+                                radius: theme.cosmic().radius_xs().into(),
+                                ..Default::default()
+                            },
+                            shadow: Default::default(),
+                            snap: true,
+                        }
+                    }))
+                    .apply(widget::mouse_area)
+                    // Left click
+                    .apply(|mouse_area| {
+                        if let Some(ref on_item_mb) = val.on_item_mb_left {
+                            mouse_area.on_press((on_item_mb)(entity))
+                        } else {
+                            mouse_area
+                        }
+                    })
+                    // Double click
+                    .apply(|mouse_area| {
+                        if let Some(ref on_item_mb) = val.on_item_mb_double {
+                            mouse_area.on_double_click((on_item_mb)(entity))
+                        } else {
+                            mouse_area
+                        }
+                    })
+                    // Middle click
+                    .apply(|mouse_area| {
+                        if let Some(ref on_item_mb) = val.on_item_mb_mid {
+                            mouse_area.on_middle_press((on_item_mb)(entity))
+                        } else {
+                            mouse_area
+                        }
+                    })
+                    // Right click
+                    .apply(|mouse_area| {
+                        if let Some(ref on_item_mb) = val.on_item_mb_right {
+                            mouse_area.on_right_press((on_item_mb)(entity))
+                        } else {
+                            mouse_area
+                        }
+                    })
+                    .apply(|mouse_area| widget::context_menu(mouse_area, item_context))
+                    .apply(Element::from);
+                if idx == 0 {
+                    vec![row]
+                } else {
+                    vec![
                         divider::horizontal::default()
                             .apply(container)
                             .padding(val.divider_padding)
                             .apply(Element::from),
-                        categories
-                            .iter()
-                            .map(|category| {
-                                widget::row::with_capacity(2)
-                                    .spacing(val.icon_spacing)
-                                    .push_maybe(
-                                        item.get_icon(*category)
-                                            .map(|icon| icon.size(val.icon_size)),
-                                    )
-                                    .push(widget::text::body(item.get_text(*category)))
-                                    .align_y(Alignment::Center)
-                                    .apply(container)
-                                    .width(category.width())
-                                    .align_y(Alignment::Center)
-                                    .apply(Element::from)
-                            })
-                            .apply(widget::row::with_children)
-                            .apply(container)
-                            .padding(val.item_padding)
-                            .class(theme::Container::custom(move |theme| {
-                                widget::container::Style {
-                                    icon_color: if selected {
-                                        Some(theme.cosmic().on_accent_color().into())
-                                    } else {
-                                        None
-                                    },
-                                    text_color: if selected {
-                                        Some(theme.cosmic().on_accent_color().into())
-                                    } else {
-                                        None
-                                    },
-                                    background: if selected {
-                                        Some(iced::Background::Color(
-                                            theme.cosmic().accent_color().into(),
-                                        ))
-                                    } else {
-                                        if val.alternate_row_colors && idx % 2 == 0 {
-                                            Some(iced::Background::Color(
-                                                theme.cosmic().shade_color().into(),
-                                            ))
-                                        } else {
-                                            None
-                                        }
-                                    },
-                                    border: Border {
-                                        radius: theme.cosmic().radius_xs().into(),
-                                        ..Default::default()
-                                    },
-                                    shadow: Default::default(),
-                                    snap: true,
-                                }
-                            }))
-                            .apply(widget::mouse_area)
-                            // Left click
-                            .apply(|mouse_area| {
-                                if let Some(ref on_item_mb) = val.on_item_mb_left {
-                                    mouse_area.on_press((on_item_mb)(entity))
-                                } else {
-                                    mouse_area
-                                }
-                            })
-                            // Double click
-                            .apply(|mouse_area| {
-                                if let Some(ref on_item_mb) = val.on_item_mb_double {
-                                    mouse_area.on_double_click((on_item_mb)(entity))
-                                } else {
-                                    mouse_area
-                                }
-                            })
-                            // Middle click
-                            .apply(|mouse_area| {
-                                if let Some(ref on_item_mb) = val.on_item_mb_mid {
-                                    mouse_area.on_middle_press((on_item_mb)(entity))
-                                } else {
-                                    mouse_area
-                                }
-                            })
-                            // Right click
-                            .apply(|mouse_area| {
-                                if let Some(ref on_item_mb) = val.on_item_mb_right {
-                                    mouse_area.on_right_press((on_item_mb)(entity))
-                                } else {
-                                    mouse_area
-                                }
-                            })
-                            .apply(|mouse_area| widget::context_menu(mouse_area, item_context))
-                            .apply(Element::from),
+                        row,
                     ]
-                })
-                .collect::<Vec<Element<'a, Message>>>()
-        };
-        let mut elements = items_full;
-        elements.insert(0, header_row);
-        elements
+                }
+            })
+            .collect::<Vec<Element<'a, Message>>>();
+        let elements = items_full
             .apply(widget::column::with_children)
-            .width(val.width)
-            .height(val.height)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .spacing(val.item_spacing);
+        let widget = if val.scroll_contents {
+            widget::column![
+                header_and_divider
+                    .apply(widget::container)
+                    .padding(Padding::default().right(widget::scrollable::SCROLLBAR_WIDTH + 2.0)),
+                elements
+                    .apply(widget::scrollable::vertical)
+                    .spacing(2.0)
+                    .width(Length::Fill)
+            ]
+        } else {
+            widget::column![header_and_divider, elements]
+        };
+        widget
             .spacing(val.item_spacing)
             .padding(val.element_padding)
+            .width(val.width)
+            .height(val.height)
             .apply(Element::from)
     }
 }
@@ -280,6 +300,7 @@ where
             icon_size: 24,
 
             alternate_row_colors: false,
+            scroll_contents: false,
 
             divider_padding: Padding::from(0).left(space_xxxs).right(space_xxxs),
 

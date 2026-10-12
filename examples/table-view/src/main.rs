@@ -93,6 +93,7 @@ pub enum Message {
     CategorySelect(Category),
     PrintMsg(String),
     SetAlternateRowColors(bool),
+    SetScrollContents(bool),
     NoOp,
 }
 
@@ -101,6 +102,7 @@ pub struct App {
     core: Core,
     table_model: table::SingleSelectModel<Item, Category>,
     alternate_row_colors: bool,
+    scroll_contents: bool,
 }
 
 /// Implement [`cosmic::Application`] to integrate with COSMIC.
@@ -152,6 +154,8 @@ impl cosmic::Application for App {
             core,
             table_model,
             alternate_row_colors: true,
+
+            scroll_contents: false,
         };
 
         let command = Task::none();
@@ -182,6 +186,9 @@ impl cosmic::Application for App {
             Message::SetAlternateRowColors(b) => {
                 self.alternate_row_colors = b;
             }
+            Message::SetScrollContents(b) => {
+                self.scroll_contents = b;
+            }
             Message::NoOp => {}
         }
         Task::none()
@@ -206,15 +213,57 @@ impl cosmic::Application for App {
                     .apply(Element::from)
             } else {
                 let spacing = cosmic::theme::spacing();
+                let table = if self.scroll_contents {
+                    widget::table(&self.table_model)
+                        .height(350)
+                        .scroll_contents(true)
+                } else {
+                    widget::table(&self.table_model)
+                };
                 widget::column![
-                    widget::row![widget::toggler(self.alternate_row_colors)
-                        .label(Some("Alternate row colors".to_string()))
-                        .spacing(spacing.space_xxs)
-                        .on_toggle(Message::SetAlternateRowColors)]
+                    widget::row![
+                        widget::toggler(self.alternate_row_colors)
+                            .label(Some("Alternate row colors".to_string()))
+                            .spacing(spacing.space_xxs)
+                            .on_toggle(Message::SetAlternateRowColors),
+                        widget::toggler(self.scroll_contents)
+                            .label(Some("Scroll contents".to_string()))
+                            .spacing(spacing.space_xxs)
+                            .on_toggle(Message::SetScrollContents)
+                    ]
                     .spacing(spacing.space_xs)
                     .padding([spacing.space_s, spacing.space_xs]),
-                    widget::table(&self.table_model)
+                    table
                         .alternate_row_colors(self.alternate_row_colors)
+                        .on_item_left_click(Message::ItemSelect)
+                        .on_category_left_click(Message::CategorySelect)
+                        .item_context(|item| {
+                            Some(widget::menu::items(
+                                &HashMap::new(),
+                                vec![widget::menu::Item::Button(
+                                    format!("Action on {}", item.name),
+                                    None,
+                                    Action::None,
+                                )],
+                            ))
+                        })
+                        .category_context(|category| {
+                            Some(widget::menu::items(
+                                &HashMap::new(),
+                                vec![
+                                    widget::menu::Item::Button(
+                                        format!("Action on {} category", category),
+                                        None,
+                                        Action::None,
+                                    ),
+                                    widget::menu::Item::Button(
+                                        format!("Other action on {} category", category),
+                                        None,
+                                        Action::None,
+                                    ),
+                                ],
+                            ))
+                        })
                         .on_item_left_click(Message::ItemSelect)
                         .on_category_left_click(Message::CategorySelect)
                         .item_context(|item| {
