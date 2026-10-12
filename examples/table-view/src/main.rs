@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use chrono::Datelike;
 use cosmic::app::{Core, Settings, Task};
-use cosmic::iced::Size;
+use cosmic::iced::{alignment::Horizontal, Size};
 use cosmic::prelude::*;
 use cosmic::widget::{self, nav_bar, table};
 use cosmic::{executor, iced};
@@ -38,22 +38,29 @@ impl table::ItemCategory for Category {
             Self::Size => iced::Length::Fixed(150.0),
         }
     }
+
+    // Optional method
+    fn alignment(&self) -> Horizontal {
+        match self {
+            Category::Name => Horizontal::Left,
+            Category::Date => Horizontal::Left,
+            Category::Size => Horizontal::Right,
+        }
+    }
+
+    // Optional method
+    fn font(&self) -> iced::Font {
+        match self {
+            Category::Size => cosmic::font::mono(),
+            Category::Name | Category::Date => cosmic::font::default(),
+        }
+    }
 }
 
 struct Item {
     name: String,
     date: chrono::DateTime<chrono::Local>,
     size: u64,
-}
-
-impl Default for Item {
-    fn default() -> Self {
-        Self {
-            name: Default::default(),
-            date: Default::default(),
-            size: Default::default(),
-        }
-    }
 }
 
 impl table::ItemInterface<Category> for Item {
@@ -102,6 +109,8 @@ pub enum Message {
     ItemSelect(table::Entity),
     CategorySelect(Category),
     PrintMsg(String),
+    SetAlternateRowColors(bool),
+    SetScrollContents(bool),
     NoOp,
 }
 
@@ -109,6 +118,8 @@ pub enum Message {
 pub struct App {
     core: Core,
     table_model: table::SingleSelectModel<Item, Category>,
+    alternate_row_colors: bool,
+    scroll_contents: bool,
 }
 
 /// Implement [`cosmic::Application`] to integrate with COSMIC.
@@ -142,41 +153,27 @@ impl cosmic::Application for App {
         let mut table_model =
             table::Model::new(vec![Category::Name, Category::Date, Category::Size]);
 
-        let _ = table_model.insert(Item {
-            name: "Foo".into(),
-            date: chrono::DateTime::default()
-                .with_day(1)
-                .unwrap()
-                .with_month(1)
-                .unwrap()
-                .with_year(1970)
-                .unwrap(),
-            size: 2,
-        });
-        let _ = table_model.insert(Item {
-            name: "Bar".into(),
-            date: chrono::DateTime::default()
-                .with_day(2)
-                .unwrap()
-                .with_month(1)
-                .unwrap()
-                .with_year(1970)
-                .unwrap(),
-            size: 4,
-        });
-        let _ = table_model.insert(Item {
-            name: "Baz".into(),
-            date: chrono::DateTime::default()
-                .with_day(3)
-                .unwrap()
-                .with_month(1)
-                .unwrap()
-                .with_year(1970)
-                .unwrap(),
-            size: 12,
-        });
+        for idx in 1..=10 {
+            let _ = table_model.insert(Item {
+                name: format!("Foo {idx}"),
+                date: chrono::DateTime::default()
+                    .with_day(idx)
+                    .unwrap()
+                    .with_month(1)
+                    .unwrap()
+                    .with_year(1970)
+                    .unwrap(),
+                size: 2_u64.pow(idx),
+            });
+        }
 
-        let app = App { core, table_model };
+        let app = App {
+            core,
+            table_model,
+            alternate_row_colors: true,
+
+            scroll_contents: false,
+        };
 
         let command = Task::none();
 
@@ -203,6 +200,12 @@ impl cosmic::Application for App {
                 self.table_model.sort(category, ascending)
             }
             Message::PrintMsg(string) => tracing_log::log::info!("{}", string),
+            Message::SetAlternateRowColors(b) => {
+                self.alternate_row_colors = b;
+            }
+            Message::SetScrollContents(b) => {
+                self.scroll_contents = b;
+            }
             Message::NoOp => {}
         }
         Task::none()
@@ -218,7 +221,7 @@ impl cosmic::Application for App {
                         Some(widget::menu::items(
                             &HashMap::new(),
                             vec![widget::menu::Item::Button(
-                                format!("Action on {}", item.name.to_string()),
+                                format!("Action on {}", item.name),
                                 None,
                                 Action::None,
                             )],
@@ -226,37 +229,89 @@ impl cosmic::Application for App {
                     })
                     .apply(Element::from)
             } else {
-                widget::table(&self.table_model)
-                    .on_item_left_click(Message::ItemSelect)
-                    .on_category_left_click(Message::CategorySelect)
-                    .item_context(|item| {
-                        Some(widget::menu::items(
-                            &HashMap::new(),
-                            vec![widget::menu::Item::Button(
-                                format!("Action on {}", item.name),
-                                None,
-                                Action::None,
-                            )],
-                        ))
-                    })
-                    .category_context(|category| {
-                        Some(widget::menu::items(
-                            &HashMap::new(),
-                            vec![
-                                widget::menu::Item::Button(
-                                    format!("Action on {} category", category.to_string()),
+                let spacing = cosmic::theme::spacing();
+                let table = if self.scroll_contents {
+                    widget::table(&self.table_model)
+                        .height(350)
+                        .scroll_contents(true)
+                } else {
+                    widget::table(&self.table_model)
+                };
+                widget::column![
+                    widget::row![
+                        widget::toggler(self.alternate_row_colors)
+                            .label(Some("Alternate row colors".to_string()))
+                            .spacing(spacing.space_xxs)
+                            .on_toggle(Message::SetAlternateRowColors),
+                        widget::toggler(self.scroll_contents)
+                            .label(Some("Scroll contents".to_string()))
+                            .spacing(spacing.space_xxs)
+                            .on_toggle(Message::SetScrollContents)
+                    ]
+                    .spacing(spacing.space_xs)
+                    .padding([spacing.space_s, spacing.space_xs]),
+                    table
+                        .alternate_row_colors(self.alternate_row_colors)
+                        .on_item_left_click(Message::ItemSelect)
+                        .on_category_left_click(Message::CategorySelect)
+                        .item_context(|item| {
+                            Some(widget::menu::items(
+                                &HashMap::new(),
+                                vec![widget::menu::Item::Button(
+                                    format!("Action on {}", item.name),
                                     None,
                                     Action::None,
-                                ),
-                                widget::menu::Item::Button(
-                                    format!("Other action on {} category", category.to_string()),
+                                )],
+                            ))
+                        })
+                        .category_context(|category| {
+                            Some(widget::menu::items(
+                                &HashMap::new(),
+                                vec![
+                                    widget::menu::Item::Button(
+                                        format!("Action on {} category", category),
+                                        None,
+                                        Action::None,
+                                    ),
+                                    widget::menu::Item::Button(
+                                        format!("Other action on {} category", category),
+                                        None,
+                                        Action::None,
+                                    ),
+                                ],
+                            ))
+                        })
+                        .on_item_left_click(Message::ItemSelect)
+                        .on_category_left_click(Message::CategorySelect)
+                        .item_context(|item| {
+                            Some(widget::menu::items(
+                                &HashMap::new(),
+                                vec![widget::menu::Item::Button(
+                                    format!("Action on {}", item.name),
                                     None,
                                     Action::None,
-                                ),
-                            ],
-                        ))
-                    })
-                    .apply(Element::from)
+                                )],
+                            ))
+                        })
+                        .category_context(|category| {
+                            Some(widget::menu::items(
+                                &HashMap::new(),
+                                vec![
+                                    widget::menu::Item::Button(
+                                        format!("Action on {} category", category),
+                                        None,
+                                        Action::None,
+                                    ),
+                                    widget::menu::Item::Button(
+                                        format!("Other action on {} category", category),
+                                        None,
+                                        Action::None,
+                                    ),
+                                ],
+                            ))
+                        })
+                ]
+                .into()
             }
         })
         .into()
