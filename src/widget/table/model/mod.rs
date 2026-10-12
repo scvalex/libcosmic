@@ -216,7 +216,7 @@ where
     /// Inserts a new item in the model.
     ///
     /// ```ignore
-    /// let id = model.insert().text("Item A").icon("custom-icon").id();
+    /// let id = model.insert(Item { .. }).id();
     /// ```
     #[must_use]
     pub fn insert(&mut self, item: Item) -> EntityMut<'_, SelectionMode, Item, Category> {
