@@ -37,6 +37,7 @@ where
 
     pub(super) alternate_row_colors: bool,
     pub(super) scroll_contents: bool,
+    pub(super) selectable_text: bool,
 
     #[setters(into)]
     pub(super) divider_padding: Padding,
@@ -155,9 +156,15 @@ where
                                 item.get_icon(*category)
                                     .map(|icon| icon.size(val.icon_size)),
                             )
-                            .push(
-                                widget::text::body(item.get_text(*category)).font(category.font()),
-                            )
+                            .push({
+                                let w = widget::text::body(item.get_text(*category))
+                                    .font(category.font());
+                                if val.selectable_text {
+                                    w.selectable()
+                                } else {
+                                    w
+                                }
+                            })
                             .align_y(Alignment::Center)
                             .apply(container)
                             .width(category.width())
@@ -306,6 +313,7 @@ where
 
             alternate_row_colors: false,
             scroll_contents: false,
+            selectable_text: true,
 
             divider_padding: Padding::from(0).left(space_xxxs).right(space_xxxs),
 
