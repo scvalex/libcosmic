@@ -24,6 +24,11 @@ pub trait ItemCategory:
     fn font(&self) -> iced::Font {
         crate::font::default()
     }
+
+    /// Get the horizontal spacing around the column.
+    fn spacing(&self) -> iced::Pixels {
+        iced::Pixels::ZERO
+    }
 }
 
 pub trait ItemInterface<Category: ItemCategory> {
