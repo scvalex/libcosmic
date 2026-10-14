@@ -168,6 +168,7 @@ where
                             .align_y(Alignment::Center)
                             .apply(container)
                             .width(category.width())
+                            .padding(Padding::default().horizontal(category.spacing()))
                             .align_x(category.alignment())
                             .align_y(Alignment::Center)
                             .apply(Element::from)
